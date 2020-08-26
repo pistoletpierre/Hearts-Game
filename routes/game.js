@@ -3,6 +3,7 @@ const router = express.Router();
 const isAuthenticated = require("../config/passport/isAuthenticated");
 const io = require("../sockets");
 const gameSocket = io.of("/game");
+const chatSocket = io.of("/game");
 const Game = require("../db/game");
 
 let user;
@@ -208,10 +209,25 @@ gameSocket.on("connection", socket => {
                             Game.getCardsLeft(game_id).then(results => {
                               let cardsLeft = results[0].cards_left;
 
+                              // TODO: get moon shooter working & put it in cardsLeft == 0
+                              //let potential_moon_shooter = get_potential_moon_shooter(game_id)
+                              //console.log("potential moon shooter:", potential_moon_shooter);
+
+                              // TODO: put this in cardsLeft == 0 once it works
+                              //   need to get room id
+                              //let scoresNote = "(System) TODO: add score summary here";
+                              //chatSocket.emit("HAND END NOTIFICATION", {
+                              //  room_id: room.value,
+                              //  scores: scoresNote
+                              //});
+
                               if (cardsLeft == 0) {
                                 // Display Winner of round
                                 // Big delay and then deal cards again for next round
                                 Game.updateTotalScores(game_id).then(() => {
+
+                                  // TODO: this is where moon shoot decision goes
+
                                   Game.getMaximumScore(game_id).then(
                                     results => {
                                       let maximumScore =
@@ -294,6 +310,23 @@ gameSocket.on("connection", socket => {
   });
 });
 
+function get_potential_moon_shooter( game_id ) {
+  let player_who_shot_the_moon = -1;
+  Game.getRoundScores(game_id).then(player_scores => {
+
+    for (let i = 0; i < player_scores.length; i++) {
+      let { user_id, current_round_score } = player_scores[i];
+      if (current_round_score == 26) {
+        player_who_shot_the_moon = user_id;
+        break
+      }
+    }
+  }, rejection_reason => {
+    console.log(rejection_reason);
+  });
+  return player_who_shot_the_moon;
+};
+
 // game logic related functions
 const checkGameReady = game_id => {
   return Game.checkGameStateExists(game_id).then(exists => {
@@ -347,7 +380,7 @@ const changeCardsOwnership = game_id => {
     Game.getCurrentRoundNumber(game_id).then(result => {
       const round_number = result[0].round_number;
 
-      if (round_number % 4 === 1) {
+      if (round_number % 3 === 1) {
         // pass to left
         for (let i = 0; i < game_players.length; i++) {
           let { user_id: owner } = game_players[i];
@@ -357,7 +390,7 @@ const changeCardsOwnership = game_id => {
 
           passCard(owner, game_id, player_to_send);
         }
-      } else if (round_number % 4 === 2) {
+      } else if (round_number % 3 === 0) {
         // pass to right
         for (let i = 0; i < game_players.length; i++) {
           let { user_id: owner } = game_players[i];
@@ -367,7 +400,7 @@ const changeCardsOwnership = game_id => {
 
           passCard(owner, game_id, player_to_send);
         }
-      } else if (round_number % 4 === 3) {
+      } else if (round_number % 3 === 2) {
         // pass across
         for (let i = 0; i < game_players.length; i++) {
           let { user_id: owner } = game_players[i];
@@ -397,11 +430,13 @@ const passCard = (owner, game_id, player_to_send) => {
 
 const startGame = game_id => {
   setTimeout(() => {
-    Game.getStartingPlayer(game_id).then(results => {
-      const starting_player = results[0].user_id;
+    Game.getCurrentRoundNumber(game_id).then(round_number => {
+      Game.getStartingPlayer(game_id, round_number).then(results => {
+        const starting_player = results[0].user_id;
 
-      Game.setCurrentPlayer(starting_player, game_id).then(() => {
-        return update(game_id);
+        Game.setCurrentPlayer(starting_player, game_id).then(() => {
+          return update(game_id);
+        });
       });
     });
   }, 500);

@@ -32,6 +32,10 @@ module.exports = {
       leading_suit: {
         type: Sequelize.INTEGER,
         defaultValue: null
+      },
+      first_starting_player: {
+        type: Sequelize.INTEGER,
+        defaultValue: null
       }
     });
   },

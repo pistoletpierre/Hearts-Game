@@ -83,3 +83,11 @@ chatSocket.on("nudge", data => {
     output.innerHTML += "<p>" + data.nudged_player + "</p>";
   }
 });
+
+chatSocket.on("hand_end", data => {
+  const { room_id, notification } = data;
+
+  if (room.value == room_id) {
+    output.innerHTML += "<p>" + data.scores + "</p>";
+  }
+});

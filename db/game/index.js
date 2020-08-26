@@ -289,8 +289,16 @@ const setCurrentPlayer = (user_id, game_id) => {
   return db.none(SET_CURRENT_PLAYER_QUERY, [user_id, game_id]);
 };
 
-const getStartingPlayer = game_id => {
-  return db.query(GET_STARTING_PLAYER_QUERY, [game_id, 2]);
+// EDIT
+//const getStartingPlayer = game_id => {
+//  return db.query(GET_STARTING_PLAYER_QUERY, [game_id, 2]);
+//};
+
+
+const getStartingPlayer = (game_id, round_number) => {
+  var starting_player = round_number[0] % 4;
+  console.log(round_number, starting_player)
+  return db.query(GET_STARTING_PLAYER_QUERY, [game_id, starting_player ]);
 };
 
 const verifyUserPassedCards = (user_id, game_id) => {
@@ -351,9 +359,9 @@ const checkPlayerTakingCards = game_id => {
           value = ((current_card - 1) % 13) + 1;
         }
 
-        if (current_suite == 3 && value == 12) {
+        if (current_suite == 2 && value == 12) {
           points_on_table += 13;
-        } else if (current_suite == 2) {
+        } else if (current_suite == 3) {
           points_on_table += 1;
         }
 
@@ -408,6 +416,10 @@ const setLeadingSuit = (game_id, lead_suit) => {
   return db.none(SET_LEAD_SUIT_QUERY, [lead_suit, game_id]);
 };
 
+const getRoundScores = game_id => {
+  return db.query(GET_ROUND_SCORES, [game_id]);
+};
+
 const updateTotalScores = game_id => {
   return db.query(GET_ROUND_SCORES, [game_id]).then(player_scores => {
     let player_who_shot_the_moon;
@@ -429,14 +441,17 @@ const updateTotalScores = game_id => {
         let { user_id } = player_scores[i];
 
         if (user_id != player_who_shot_the_moon) {
-          return db.none(UPDATE_SCORES_QUERY2, [game_id, user_id]).then(() => {
-            return resetRoundScore(game_id);
+          db.none(UPDATE_SCORES_QUERY2, [game_id, user_id]).then(() => {
+            //return resetRoundScore(game_id);
           });
         }
       }
+      return resetRoundScore(game_id);
     }
   });
 };
+
+
 
 const incrementRoundNumber = game_id => {
   return db.none(INCREMENT_ROUND_QUERY, [game_id]);
@@ -512,5 +527,6 @@ module.exports = {
   getHandSize,
   getMaximumScore,
   checkGameExists,
-  isGamePlayer
+  isGamePlayer,
+  getRoundScores
 };

@@ -13,6 +13,10 @@ io.on("connection", socket => {
     io.emit("nudge", data);
   });
 
+  socket.on("HAND END NOTIFICATION", data => {
+    io.emit("hand_end", data);
+  });
+
   socket.on("typing", data => {
     socket.broadcast.emit("typing msg", data);
   });

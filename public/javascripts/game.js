@@ -17,6 +17,11 @@ let selectedMultiple = ["0", "0", "0"];
 let validPass = false;
 let gameOver = false;
 
+let must_pick_2_of_clubs_first = false;
+let only_show_current_hand_scores_to_observer = true;
+let nudge_timeout_seconds = 30;
+let nudge_timeout_value = nudge_timeout_seconds * 1000;
+
 gameSocket.on("LOAD PLAYERS", data => {
   playerNames = data.game_players;
 
@@ -190,10 +195,14 @@ function updateGameBoard() {
     "<p>" +
     playerNames[topPlayerOrder].username +
     "</p>" +
-    '<div class = "player-score-box">' +
+    '<div class = "player-score-box">';
+  if (!only_show_current_hand_scores_to_observer || observer) {
+    gameHtml +=
     '<p class = "player-round-score">Score this round: ' +
     topPlayer.current_round_score +
-    "</p>" +
+    "</p>";
+  }
+  gameHtml +=
     '<p class = "player-total-score">Total score: ' +
     topPlayer.total_score +
     "</p>" +
@@ -221,6 +230,8 @@ function updateGameBoard() {
       topPlayer.card_in_play +
       '"></div>';
   }
+  let   up_26_button = "";
+  let down_26_button = "";
 
   let buttonString = "";
   if (validPass) {
@@ -259,10 +270,14 @@ function updateGameBoard() {
 
   gameHtml +=
     '<div class = "player-info">' +
-    '<div class = "player-score-box">' +
+    '<div class = "player-score-box">';
+  if (!only_show_current_hand_scores_to_observer || observer) {
+    gameHtml +=
     '<p class = "player-round-score">Score this round: ' +
     bottomPlayer.current_round_score +
-    "</p>" +
+    "</p>";
+  }
+  gameHtml +=
     '<p class = "player-total-score">Total score: ' +
     bottomPlayer.total_score +
     "</p>" +
@@ -334,10 +349,14 @@ function updateBoardFourPlayers(gameHtml) {
 
   gameHtml +=
     '<div class = "left-player-info">' +
-    '<div class = "player-score-box">' +
+    '<div class = "player-score-box">';
+  if (!only_show_current_hand_scores_to_observer || observer) {
+    gameHtml +=
     '<p class = "player-round-score">Score this round: ' +
     leftPlayer.current_round_score +
-    "</p>" +
+    "</p>";
+  }
+  gameHtml +=
     '<p class = "player-total-score">Total score: ' +
     leftPlayer.total_score +
     "</p>" +
@@ -372,10 +391,14 @@ function updateBoardFourPlayers(gameHtml) {
 
   gameHtml +=
     '<div class = "right-player-info">' +
-    '<div class = "player-score-box">' +
+    '<div class = "player-score-box">';
+  if (!only_show_current_hand_scores_to_observer || observer) {
+    gameHtml +=
     '<p class = "player-round-score">Score this round: ' +
     rightPlayer.current_round_score +
-    "</p>" +
+    "</p>";
+  }
+  gameHtml +=
     '<p class = "player-total-score">Total score: ' +
     rightPlayer.total_score +
     "</p>" +
@@ -465,15 +488,22 @@ function buttonDisableLogic() {
       parseInt(leftPlayer.card_count) + parseInt(rightPlayer.card_count);
   }
   if (handSizeTotal == 52) {
-    //Must pick 2 of clubs
-    if (selectedCard == 2) {
+    if (must_pick_2_of_clubs_first) {
+      //Must pick 2 of clubs
+      if (selectedCard == 2) {
+        alertBox.innerHTML = "";
+        btn.disabled = false;
+      } else {
+        alertBox.innerHTML =
+          "<p> The two of clubs must be the first card played each round.</p>";
+        btn.disabled = true;
+      }
+
+    } else { // Play whatever you want first
       alertBox.innerHTML = "";
       btn.disabled = false;
-    } else {
-      alertBox.innerHTML =
-        "<p> The two of clubs must be the first card played each round.</p>";
-      btn.disabled = true;
     }
+
     return;
   }
 
@@ -497,9 +527,10 @@ function buttonDisableLogic() {
 
   //Case: you're the leading suit
   if (leadCard == 0) {
-    let brokenHearts =
-      parseInt(bottomPlayer.current_round_score) +
-      parseInt(topPlayer.current_round_score);
+    //EDIT let brokenHearts =
+      //parseInt(bottomPlayer.current_round_score) +
+      //parseInt(topPlayer.current_round_score);
+    let brokenHearts = 1;
     if (numPlayers == 4) {
       brokenHearts +=
         parseInt(leftPlayer.current_round_score) +
@@ -630,16 +661,17 @@ function nudgeButton() {
 
   let nudgedNote = "";
 
+
   if (currentPlayer == null) {
     nudgedNote =
       "<b>(System)</b> " +
       username +
-      " has nudged all players; players have 30 seconds to finish passing their cards or they will forfeit!";
+      " has nudged all players; players have "+nudge_timeout_seconds+" seconds to finish passing their cards or they will forfeit!";
   } else {
     nudgedNote =
       "<b>(System)</b> " +
       currentPlayer +
-      " has been nudged and has 30 seconds to play a card or they will forfeit!";
+      " has been nudged and has "+nudge_timeout_seconds+" seconds to play a card or they will forfeit!";
   }
 
   chatSocket.emit("NUDGE NOTIFICATION", {
@@ -647,7 +679,7 @@ function nudgeButton() {
     nudged_player: nudgedNote
   });
 
-  let timer = setTimeout(nudgeFinal, 30000);
+  let timer = setTimeout(nudgeFinal, nudge_timeout_value);
 
   gameSocket.emit("NUDGE NOTIFICATION", {
     room_id: room.value,

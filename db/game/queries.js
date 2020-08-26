@@ -1,6 +1,6 @@
 const CREATE_GAME_QUERY =
-  "INSERT INTO games (max_players, game_name, round_number) VALUES " +
-  "($1, $2, $3) RETURNING game_id";
+  "INSERT INTO games (max_players, game_name, round_number, first_starting_player) VALUES " +
+  "($1, $2, $3, (select floor(random() * $1))) RETURNING game_id";
 
 const CREATE_GAME_PLAYER_QUERY =
   "INSERT INTO game_players (user_id, game_id, total_score, current_round_score, " +
@@ -83,8 +83,26 @@ const GET_GAME_PLAYERS_QUERY =
   "SELECT * FROM game_players WHERE game_id = $1 ORDER BY turn_sequence";
 
 const GET_PLAYER_CARDS_QUERY =
-  "SELECT card_id FROM user_game_cards WHERE user_game_cards.user_id = $1 AND " +
-  "game_id = $2 ORDER BY card_id";
+  //"SELECT card_id FROM user_game_cards WHERE user_game_cards.user_id = $1 AND " +
+  //"game_id = $2 ORDER BY card_id";
+
+  "SELECT joined.card_id FROM " +
+  "(SELECT user_game_cards.card_id, cards.card_value, cards.card_suit FROM " +
+    "user_game_cards JOIN cards ON user_game_cards.card_id = cards.card_id " +
+    "WHERE user_game_cards.user_id = $1 " +
+      "AND game_id = $2 " +
+      "ORDER BY (CASE cards.card_suit " +
+      "    WHEN 'Clubs' " +
+      "    THEN 1 " +
+      "    WHEN 'Diamonds' " +
+      "    THEN 2 " +
+      "    WHEN 'Spades' " +
+      "    THEN 3 " +
+      "    WHEN 'Hearts' " +
+      "    THEN 4     " +
+      "    END " +
+      ") ASC, cards.card_value" +
+  ") as joined";
 
 const TURN_QUERY =
   "SELECT users.username AS current_player FROM games, users WHERE game_id = $1 AND " +
@@ -116,8 +134,28 @@ const DELETE_PASS_CARD_QUERY =
 const SET_CURRENT_PLAYER_QUERY =
   "UPDATE games SET current_player=$1 WHERE game_id=$2";
 
+//EDIT
+//const GET_STARTING_PLAYER_QUERY =
+//  "SELECT user_id FROM user_game_cards WHERE game_id=$1 AND card_id=$2";
+
 const GET_STARTING_PLAYER_QUERY =
-  "SELECT user_id FROM user_game_cards WHERE game_id=$1 AND card_id=$2";
+  //"WITH current_round_number AS (SELECT round_number FROM games WHERE game_id=$1), " +
+  //"  unique_user_ids_in_this_game AS (SELECT DISTINCT user_id FROM user_game_cards WHERE game_id=$1 ORDER BY user_id) " +
+  //"SELECT user_id " +
+  //"FROM unique_user_ids_in_this_game " +
+  //"LIMIT 1 " +
+  //"OFFSET (SELECT MOD(round_number + (SELECT first_starting_player FROM games where game_id=$1), (SELECT max_players FROM games where game_id=$1)) FROM games WHERE game_id=$1)  ";
+  "WITH current_round_number AS (SELECT round_number FROM games WHERE game_id=$1), " +
+  "  unique_user_ids_in_this_game AS (SELECT DISTINCT user_id, turn_sequence FROM game_players WHERE game_id=$1 ORDER BY turn_sequence) " +
+  "SELECT user_id " +
+  "FROM unique_user_ids_in_this_game " +
+  "LIMIT 1 " +
+  "OFFSET (" +
+  "  SELECT MOD(" +
+  "    round_number + (SELECT first_starting_player FROM games where game_id=$1), (SELECT max_players FROM games where game_id=$1)" +
+  "  ) FROM games WHERE game_id=$1)  ";
+
+
 
 const PLAY_CARD_QUERY =
   "UPDATE cards_in_play SET card_id = $1 WHERE user_id = $2 AND game_id = $3";
