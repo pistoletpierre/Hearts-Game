@@ -37,8 +37,8 @@ module.exports = {
       },
       // TODO: change this to boolean. Using integer for now since it's a mid-game adjustment and boolea
       moonshot_up26: {
-        type: Sequelize.INTEGER,
-        allowNull: false
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
         defaultValue: true
       }
     });

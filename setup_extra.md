@@ -12,7 +12,7 @@ sudo apt update -y
 sudo apt install -y npm
 sudo apt install -y postgresql postgresql-contrib
 ```
-f
+
 ### Optional: pgadmin4: nice to have for SQL table inspection/query debugging
 #### RPI way (modify PGADMIN_DEFAULT_EMAIL & PGADMIN_DEFAULT_PASSWORD below as desired)
 ```bash
@@ -96,6 +96,8 @@ sudo -u postgres /usr/lib/postgresql/${POSTGRESQL_DIR}/bin/pg_ctl -D /var/lib/po
 ## Create the hearts game database
 ```bash
 sudo -u postgres createdb ${DATABASE_NAME}
+# if you want/need to delete it:
+# sudo -u postgres dropdb ${DATABASE_NAME}
 ```
 
 ## Create a username for yourself (this step is interactive)
@@ -107,6 +109,7 @@ sudo -u postgres createuser --interactive
 
 ## get latest nodejs (Debian's latest nodejs version in apt is outdated as of 2020-09-06), and this solves that
 ```bash
+sudo apt install curl
 curl https://www.npmjs.com/install.sh | sudo sh
 ```
 
