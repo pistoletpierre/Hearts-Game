@@ -4,7 +4,7 @@ const CREATE_GAME_QUERY =
 
 const CREATE_GAME_PLAYER_QUERY =
   "INSERT INTO game_players (user_id, game_id, total_score, current_round_score, " +
-  "turn_sequence) VALUES ($1, $2, $3, $4, $5)";
+  "turn_sequence, moonshot_up26) VALUES ($1, $2, $3, $4, $5, true)";
 
 const GET_CURRENT_GAMES_QUERY =
   "SELECT g.game_id, game_name, max_players, COUNT(*) as player_count " +
@@ -60,13 +60,13 @@ const SORT_BY_TURN_QUERY =
 const SHARED_INFO_QUERY =
   "SELECT  username, turn_sequence, " +
   "current_round_score, total_score, " +
-  "cards_in_play.card_id AS card_in_play, 0 AS card_count " +
+  "cards_in_play.card_id AS card_in_play, 0 AS card_count, game_players.moonshot_up26 as moonshot_up26 " +
   "FROM users, game_players, cards_in_play " +
   "WHERE users.user_id = game_players.user_id " +
   "AND cards_in_play.game_id = $1 " +
   "AND cards_in_play.user_id = users.user_id " +
   "AND game_players.game_id = $1 " +
-  "GROUP BY username, turn_sequence, current_round_score, total_score, cards_in_play.card_id " +
+  "GROUP BY username, turn_sequence, current_round_score, total_score, cards_in_play.card_id, game_players.moonshot_up26 " +
   "ORDER BY turn_sequence";
 
 const GET_HAND_SIZE_QUERY =
@@ -123,7 +123,7 @@ const PASS_CARD_QUERY =
 const GET_PASS_CARD_QUERY =
   "SELECT COUNT(DISTINCT card_id) FROM passed_cards WHERE game_id = $1";
 
-const GET_CURRENT_RND_SCORE = "SELECT round_number FROM games WHERE game_id=$1";
+const GET_CURRENT_RND_NUMBER = "SELECT round_number FROM games WHERE game_id=$1";
 
 const GET_ALL_PASS_CARDS =
   "SELECT * FROM passed_cards WHERE user_id=$1 AND game_id=$2";
@@ -187,11 +187,20 @@ const SET_LEAD_SUIT_QUERY =
 const GET_ROUND_SCORES =
   "SELECT user_id, current_round_score FROM game_players WHERE game_id = $1";
 
+const SET_PLAYER_MOONSHOT_SETTING =
+  "UPDATE game_players SET moonshot_up26 = $3 WHERE game_id = $2 AND user_id = $1";
+
+const GET_PLAYER_MOONSHOT_SETTING =
+  "SELECT moonshot_up26 from game_players WHERE game_id = $1 AND user_id = $2";
+
 const UPDATE_SCORES_QUERY =
   "UPDATE game_players SET total_score = total_score + current_round_score WHERE game_id = $1";
 
-const UPDATE_SCORES_QUERY2 =
+const UPDATE_SCORES_QUERY_UP26 =
   "UPDATE game_players SET total_score = total_score + 26 WHERE game_id = $1 AND user_id = $2";
+
+const UPDATE_SCORES_QUERY_DOWN26 =
+  "UPDATE game_players SET total_score = total_score - 26 WHERE game_id = $1 AND user_id = $2";
 
 const INCREMENT_ROUND_QUERY =
   "UPDATE games SET round_number = round_number + 1 WHERE game_id = $1";
@@ -247,7 +256,7 @@ module.exports = {
   GET_USER_GAME_CARD_QUERY,
   PASS_CARD_QUERY,
   GET_PASS_CARD_QUERY,
-  GET_CURRENT_RND_SCORE,
+  GET_CURRENT_RND_NUMBER,
   GET_ALL_PASS_CARDS,
   DELETE_PASS_CARD_QUERY,
   SET_CURRENT_PLAYER_QUERY,
@@ -263,12 +272,15 @@ module.exports = {
   SET_LEAD_SUIT_QUERY,
   GET_ROUND_SCORES,
   UPDATE_SCORES_QUERY,
-  UPDATE_SCORES_QUERY2,
   INCREMENT_ROUND_QUERY,
   GET_USER_ID,
   NUDGE_QUERY,
   TOTAL_POINTS_QUERY,
   GET_MAX_SCORE_QUERY,
   VERIFY_PLAYER_QUERY,
-  RESET_POINTS_QUERY
+  RESET_POINTS_QUERY,
+  SET_PLAYER_MOONSHOT_SETTING,
+  GET_PLAYER_MOONSHOT_SETTING,
+  UPDATE_SCORES_QUERY_DOWN26,
+  UPDATE_SCORES_QUERY_UP26
 };

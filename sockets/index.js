@@ -17,6 +17,10 @@ io.on("connection", socket => {
     io.emit("hand_end", data);
   });
 
+  socket.on("PASS DIRECTION NOTIFICATION", data => {
+    io.emit("pass direction", data);
+  });
+
   socket.on("typing", data => {
     socket.broadcast.emit("typing msg", data);
   });

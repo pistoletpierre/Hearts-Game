@@ -1,5 +1,4 @@
-setup.txt
-.remote-sync.json
+.remote-sync.json*
 sql_practise.sql
 
 # Logs

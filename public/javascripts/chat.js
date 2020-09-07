@@ -49,6 +49,16 @@ chatSocket.on("send msg", data => {
   }
 });
 
+chatSocket.on("pass direction", data => {
+  const { room_id, message } = data;
+
+  if (room.value == room_id) {
+    feedback.innerHTML = "";
+    output.innerHTML +=
+      "<p>(System)" + message + "</p>";
+  }
+});
+
 chatSocket.on("entry msg", data => {
   const { room_id, handle } = data;
 

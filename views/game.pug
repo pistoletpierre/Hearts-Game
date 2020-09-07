@@ -33,6 +33,9 @@ body(class = 'general-body')
                 input(id='room_id', type='hidden')
                 button.btn.btn-primary(id='send', style='width: 100%') Send
 
+        div(class='last-played-box')
+            p(class='last-played-box-p') Cards played last hand:
+
     script.
         const username = '#{user.username}'
         const user_id = '#{user.user_id}'

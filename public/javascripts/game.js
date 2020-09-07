@@ -8,6 +8,15 @@ let playersCards;
 let currentPlayer;
 let turnState;
 let observer;
+
+let lastCards = null;
+
+let moon_shot_up_26 = true;
+
+let current_round_number;
+
+let just_loaded = true;
+
 let selectedSingle = false;
 let selectedFirst = false;
 let selectedSecond = false;
@@ -18,9 +27,16 @@ let validPass = false;
 let gameOver = false;
 
 let must_pick_2_of_clubs_first = false;
+let no_points_on_first_trick = true;
 let only_show_current_hand_scores_to_observer = true;
-let nudge_timeout_seconds = 30;
+let nudge_timeout_seconds = 3000;
 let nudge_timeout_value = nudge_timeout_seconds * 1000;
+
+
+gameSocket.on("SEND ROUND NUMBER", data => {
+  current_round_number = data.round_number[0].round_number;
+});
+
 
 gameSocket.on("LOAD PLAYERS", data => {
   playerNames = data.game_players;
@@ -52,20 +68,53 @@ gameSocket.on("LOAD PLAYERS", data => {
   }
 });
 
+gameSocket.on("SET_LAST_HAND", data => {
+  lastCards = data.lastCards;
+});
+
+
+function up26() {
+  // set moonshot setting to push everyone else up 26
+  moon_shot_up_26 = true;
+  gameSocket.emit("MOONSHOT SETTING CHANGE", {
+    user_id: user_id,
+    game_id: game_id,
+    moon_shot_up_26: moon_shot_up_26
+  });
+  updateGameBoard();
+}
+
+function down26() {
+  // set moonshot setting to go down 26
+  moon_shot_up_26 = false;
+  gameSocket.emit("MOONSHOT SETTING CHANGE", {
+    user_id: user_id,
+    game_id: game_id,
+    moon_shot_up_26: moon_shot_up_26
+  });
+  updateGameBoard();
+}
+
 gameSocket.on("UPDATE", data => {
   try {
     clearTimeout(timer);
   } catch (e) {}
+
+  just_loaded = false
 
   validPass = false;
 
   topPlayer = data.shared_player_information[topPlayerOrder];
   bottomPlayer = data.shared_player_information[bottomPlayerOrder];
 
+  moon_shot_up_26 = data.shared_player_information[bottomPlayerOrder].moonshot_up26;
+
   if (numPlayers == 4) {
     leftPlayer = data.shared_player_information[leftPlayerOrder];
     rightPlayer = data.shared_player_information[rightPlayerOrder];
   }
+
+  if (data.current_round_number == null) { gameSocket.emit("GET ROUND NUMBER", { user_id: user_id, game_id: game_id }); }
 
   if (observer) {
     turnState = "observer";
@@ -190,6 +239,9 @@ function updateGameBoard() {
   let gameHtml = "";
   let z = 1;
 
+  if (current_round_number == null) { gameSocket.emit("GET ROUND NUMBER", { user_id: user_id, game_id: game_id }); }
+
+
   gameHtml +=
     '<div class = "top-player-info">' +
     "<p>" +
@@ -234,6 +286,15 @@ function updateGameBoard() {
   let down_26_button = "";
 
   let buttonString = "";
+  let moon_shot_button_string = "";
+  if (moon_shot_up_26) {
+    moon_shot_button_string += '<button class="up26-button   btn btn-primary" disabled="" id="up26"   onclick="up26()">+26</button>';
+    moon_shot_button_string += '<button class="down26-button btn btn-primary"             id="down26" onclick="down26()">-26</button>';
+  } else {
+    moon_shot_button_string += '<button class="up26-button   btn btn-primary"             id="up26"   onclick="up26()">+26</button>';
+    moon_shot_button_string += '<button class="down26-button btn btn-primary" disabled="" id="down26" onclick="down26()">-26</button>';
+  }
+  gameHtml += moon_shot_button_string
   if (validPass) {
     buttonString = "";
     gameHtml +=
@@ -248,10 +309,13 @@ function updateGameBoard() {
       '<div class = "alert-box"><p>Your turn to play a card.</p></div>';
   } else if (turnState == "pass") {
     buttonString = 'onclick="selectMultipleCard(this.id)"';
-    gameHtml +=
-      '<button class="game-button btn btn-primary " id="multiple-button" onclick="passButton()" disabled>Pass cards</button>';
-    gameHtml +=
-      '<div class = "alert-box"><p>Select three cards to pass.</p></div>';
+    let pass_direction = "unknown";
+    if (just_loaded && current_round_number == undefined) { pass_direction = "left"; }
+    if (current_round_number % 3 == 1) { pass_direction = "left"; }
+    if (current_round_number % 3 == 2) { pass_direction = "across"; }
+    if (current_round_number % 3 == 0) { pass_direction = "right"; }
+    gameHtml += '<button class="game-button btn btn-primary " id="multiple-button" onclick="passButton()" disabled>Pass ' + pass_direction + '</button>';
+    gameHtml += '<div class = "alert-box"><p>Select three cards to pass.</p></div>';
   } else if (!observer) {
     buttonString = "";
     gameHtml +=
@@ -335,6 +399,37 @@ function updateGameBoard() {
       bottomPlayer.card_in_play +
       '"></div>';
   }
+
+
+  // SHOW LAST TRICK
+  const last_played_box = document.getElementsByClassName("last-played-box")[0];
+  let last_played_HTML = "<p class=\"last-played-box-p\">Cards played last hand:</p>";
+  displacement = 300;
+  if ( ! (lastCards == null)) {
+    for (let i = 0; i < numPlayers; i++) {
+      let card_id = lastCards[i].card_id;
+      let suit = -Math.floor((card_id - 1) / 13) * 100;
+      let face = -((card_id - 1) % 13) * 69;
+      last_played_HTML +=
+        '<div class= "last-trick" style="left: ' +
+        displacement +
+        "px; z-index: " +
+        z +
+        "; background-position-y: " +
+        suit +
+        "px; background-position-x: " +
+        face +
+        'px" ' +
+        buttonString +
+        ' id="' +
+        i +
+        '"></div>';
+      z++;
+      displacement += 20;
+    }
+  }
+  last_played_box.innerHTML = last_played_HTML;
+
 
   if (numPlayers == 4) {
     updateBoardFourPlayers(gameHtml);
@@ -481,14 +576,20 @@ function buttonDisableLogic() {
 
   let btn = document.getElementById("single-button");
 
-  let handSizeTotal =
-    parseInt(topPlayer.card_count) + parseInt(bottomPlayer.card_count);
+  let handSizeTotal = parseInt(topPlayer.card_count) + parseInt(bottomPlayer.card_count);
   if (numPlayers == 4) {
-    handSizeTotal +=
-      parseInt(leftPlayer.card_count) + parseInt(rightPlayer.card_count);
+    handSizeTotal += parseInt(leftPlayer.card_count) + parseInt(rightPlayer.card_count);
   }
-  if (handSizeTotal == 52) {
-    if (must_pick_2_of_clubs_first) {
+
+  let hasNonPoint = false;
+  for (let i = 0; i < playersCards.length; i++) {
+    if ( ! (playersCards[i].card_id == 38 || ( 40 <= playersCards[i].card_id && playersCards[i].card_id <= 52 ) ) ) {
+      hasNonPoint = true;
+    }
+  }
+
+  if (handSizeTotal >= 49) {
+    if (handSizeTotal == 52 && must_pick_2_of_clubs_first) {
       //Must pick 2 of clubs
       if (selectedCard == 2) {
         alertBox.innerHTML = "";
@@ -498,7 +599,14 @@ function buttonDisableLogic() {
           "<p> The two of clubs must be the first card played each round.</p>";
         btn.disabled = true;
       }
-
+    } else if (no_points_on_first_trick && hasNonPoint) {
+      alertBox.innerHTML = "";
+      btn.disabled = false;
+      if (selectedCard == 38 || (40 <= selectedCard && selectedCard <= 52) ) {
+        alertBox.innerHTML =
+          "<p> No points can be played in the first trick </p>";
+        btn.disabled = true;
+      }
     } else { // Play whatever you want first
       alertBox.innerHTML = "";
       btn.disabled = false;
@@ -544,7 +652,7 @@ function buttonDisableLogic() {
       }
     }
 
-    if (brokenHearts == 0 && selectedSuit == 2 && hasNonHeart) {
+    if (brokenHearts == 0 && selectedSuit == 3 && hasNonHeart) {
       alertBox.innerHTML =
         "<p>Hearts haven't been broken yet, you can't play hearts as the lead suit.</p>";
       btn.disabled = true;

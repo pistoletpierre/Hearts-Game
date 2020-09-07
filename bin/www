@@ -20,10 +20,15 @@ app.set("port", port);
  */
  const fs = require('fs');
 
+ /**
+  * Create HTTPS server.
+  */
+ /*
  const https_options = {
    key: fs.readFileSync('key.pem'),
    cert: fs.readFileSync('cert.pem')
  };
+ */
 
 //const server = https.createServer(https_options,app);
 const server = http.createServer(app);

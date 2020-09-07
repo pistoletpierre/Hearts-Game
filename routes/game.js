@@ -73,11 +73,31 @@ gameSocket.on("connection", socket => {
     nudge_timer = data.nudge_timer;
   });
 
+  socket.on("MOONSHOT SETTING CHANGE", data => {
+    const { user_id, game_id, moon_shot_up_26 } = data;
+    Game.setMoonshotSetting(user_id, game_id, moon_shot_up_26).then(results => {
+
+    }).catch(error => {
+      console.log(error);
+    });
+  });
+
+
   socket.on("GET PLAYER HAND", data => {
     const { user_id, game_id } = data;
 
     Game.getPlayerCards(user_id, game_id).then(player_hand => {
       socket.emit("SEND PLAYER HAND", { player_hand: player_hand });
+    });
+  });
+
+  socket.on("GET ROUND NUMBER", data => {
+    const { user_id, game_id } = data;
+
+    Game.getCurrentRoundNumber(game_id).then(round_number => {
+      socket.emit("SEND ROUND NUMBER", { round_number: round_number });
+    }).catch(error => {
+      console.log(error);
     });
   });
 
@@ -204,12 +224,30 @@ gameSocket.on("connection", socket => {
                       let numberOfPlayedCards = results[0].count;
 
                       if (numberOfPlayedCards == gamePlayers.length) {
+
+                        // UPDATE LAST PLAYED HAND
+                        Game.getCardsInPlay(game_id).then(results => {
+                          let cards_just_played = results;
+                          console.log(cards_just_played);
+                          setTimeout(() => {
+                            gameSocket
+                              .to(game_id)
+                              .emit("SET_LAST_HAND", {
+                                lastCards: cards_just_played
+                              });
+                          }, 500);
+                        }).catch(error => {
+                          console.log(error);
+                        });
+
+
                         Game.allocatePointsForTurn(game_id).then(
                           winning_player => {
                             Game.getCardsLeft(game_id).then(results => {
                               let cardsLeft = results[0].cards_left;
 
                               // TODO: get moon shooter working & put it in cardsLeft == 0
+                              //Game.updateTotalScores(game_id).then(() => {});
                               //let potential_moon_shooter = get_potential_moon_shooter(game_id)
                               //console.log("potential moon shooter:", potential_moon_shooter);
 

@@ -48,7 +48,25 @@
   height: 100px;
   top: 480px;
   position: absolute;
-  transition-duration: 100ms;
+  /* transition-duration: 100ms; */
+}
+
+.last-trick {
+  background-image: url("/images/cards.png");
+  width: 69px;
+  height: 100px;
+  /* top: 480px; */
+  position: absolute;
+}
+
+.last-played-box {
+  display: block;
+  position: absolute;
+  top: 750px;
+}
+
+.last-played-box-p {
+  margin: 0 300px;
 }
 
 .bottom-player:hover {

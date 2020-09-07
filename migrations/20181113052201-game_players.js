@@ -9,7 +9,8 @@ module.exports = {
         references: {
           model: "users",
           key: "user_id"
-        }
+        },
+        primaryKey:true
       },
       game_id: {
         type: Sequelize.INTEGER,
@@ -17,7 +18,8 @@ module.exports = {
         references: {
           model: "games",
           key: "game_id"
-        }
+        },
+        primaryKey: true
       },
       total_score: {
         type: Sequelize.INTEGER,
@@ -32,6 +34,12 @@ module.exports = {
       turn_sequence: {
         type: Sequelize.INTEGER,
         allowNull: false
+      },
+      // TODO: change this to boolean. Using integer for now since it's a mid-game adjustment and boolea
+      moonshot_up26: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+        defaultValue: true
       }
     });
   },

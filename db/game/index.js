@@ -29,7 +29,7 @@ const {
   GET_USER_GAME_CARD_QUERY,
   PASS_CARD_QUERY,
   GET_PASS_CARD_QUERY,
-  GET_CURRENT_RND_SCORE,
+  GET_CURRENT_RND_NUMBER,
   GET_ALL_PASS_CARDS,
   DELETE_PASS_CARD_QUERY,
   SET_CURRENT_PLAYER_QUERY,
@@ -45,14 +45,17 @@ const {
   SET_LEAD_SUIT_QUERY,
   GET_ROUND_SCORES,
   UPDATE_SCORES_QUERY,
-  UPDATE_SCORES_QUERY2,
   INCREMENT_ROUND_QUERY,
   GET_USER_ID,
   NUDGE_QUERY,
   TOTAL_POINTS_QUERY,
   GET_MAX_SCORE_QUERY,
   RESET_POINTS_QUERY,
-  VERIFY_PLAYER_QUERY
+  VERIFY_PLAYER_QUERY,
+  SET_PLAYER_MOONSHOT_SETTING,
+  GET_PLAYER_MOONSHOT_SETTING,
+  UPDATE_SCORES_QUERY_DOWN26,
+  UPDATE_SCORES_QUERY_UP26
 } = require("./queries");
 
 const createGame = (max_players, user_id, game_name) => {
@@ -274,7 +277,7 @@ const checkAllPlayersPassed = game_id => {
 };
 
 const getCurrentRoundNumber = game_id => {
-  return db.query(GET_CURRENT_RND_SCORE, [game_id]);
+  return db.query(GET_CURRENT_RND_NUMBER, [game_id]);
 };
 
 const getPassCardsForUser = (user_id, game_id) => {
@@ -420,6 +423,8 @@ const getRoundScores = game_id => {
   return db.query(GET_ROUND_SCORES, [game_id]);
 };
 
+
+
 const updateTotalScores = game_id => {
   return db.query(GET_ROUND_SCORES, [game_id]).then(player_scores => {
     let player_who_shot_the_moon;
@@ -428,24 +433,35 @@ const updateTotalScores = game_id => {
       let { user_id, current_round_score } = player_scores[i];
       if (current_round_score == 26) {
         player_who_shot_the_moon = user_id;
+        db.query(GET_PLAYER_MOONSHOT_SETTING, [game_id, user_id]). then(results => {
+          if ( ! results[0].moonshot_up26 ) {
+            console.log(player_who_shot_the_moon, results[0].moonshot_up26);
+            db.none(UPDATE_SCORES_QUERY_DOWN26, [game_id, player_who_shot_the_moon]).then(() => {
+              //return resetRoundScore(game_id);
+            });
+          } else {
+            console.log(player_who_shot_the_moon, results[0].moonshot_up26);
+            for (let i = 0; i < player_scores.length; i++) {
+              let { user_id } = player_scores[i];
+
+              if (user_id != player_who_shot_the_moon) {
+                db.none(UPDATE_SCORES_QUERY_UP26, [game_id, user_id]).then(() => {
+                  //return resetRoundScore(game_id);
+                });
+              }
+            }
+          }
+        });
         break;
       }
     }
 
     if (player_who_shot_the_moon === undefined) {
+      console.log(player_who_shot_the_moon, moon_shot_up_26);
       return db.none(UPDATE_SCORES_QUERY, [game_id]).then(() => {
         return resetRoundScore(game_id);
       });
     } else {
-      for (let i = 0; i < player_scores.length; i++) {
-        let { user_id } = player_scores[i];
-
-        if (user_id != player_who_shot_the_moon) {
-          db.none(UPDATE_SCORES_QUERY2, [game_id, user_id]).then(() => {
-            //return resetRoundScore(game_id);
-          });
-        }
-      }
       return resetRoundScore(game_id);
     }
   });
@@ -479,6 +495,10 @@ const isGamePlayer = (user_id, game_id) => {
 
 const resetRoundScore = game_id => {
   return db.none(RESET_POINTS_QUERY, [game_id]);
+};
+
+const setMoonshotSetting = (user_id, game_id, moonshot_up26) => {
+  return db.none(SET_PLAYER_MOONSHOT_SETTING, [user_id, game_id, moonshot_up26]);
 };
 
 module.exports = {
@@ -517,6 +537,7 @@ module.exports = {
   allocatePointsForTurn,
   verifyUserPassedCards,
   getCardsInPlayCount,
+  getCardsInPlay,
   getLeadingSuit,
   setLeadingSuit,
   updateTotalScores,
@@ -528,5 +549,6 @@ module.exports = {
   getMaximumScore,
   checkGameExists,
   isGamePlayer,
-  getRoundScores
+  getRoundScores,
+  setMoonshotSetting
 };
