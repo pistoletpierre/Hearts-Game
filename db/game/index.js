@@ -457,7 +457,6 @@ const updateTotalScores = game_id => {
     }
 
     if (player_who_shot_the_moon === undefined) {
-      console.log(player_who_shot_the_moon, moon_shot_up_26);
       return db.none(UPDATE_SCORES_QUERY, [game_id]).then(() => {
         return resetRoundScore(game_id);
       });

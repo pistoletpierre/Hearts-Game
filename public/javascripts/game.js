@@ -588,7 +588,7 @@ function buttonDisableLogic() {
     }
   }
 
-  if (handSizeTotal >= 49) {
+  if (handSizeTotal >= 52 - numPlayers + 1) {
     if (handSizeTotal == 52 && must_pick_2_of_clubs_first) {
       //Must pick 2 of clubs
       if (selectedCard == 2) {
