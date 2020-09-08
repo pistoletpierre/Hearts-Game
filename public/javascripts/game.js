@@ -27,7 +27,9 @@ let validPass = false;
 let gameOver = false;
 
 let must_pick_2_of_clubs_first = false;
-let no_points_on_first_trick = true;
+let hearts_must_be_broken = false
+let no_points_on_first_trick_lead = true;
+let no_points_on_first_trick = false;
 let only_show_current_hand_scores_to_observer = true;
 let nudge_timeout_seconds = 3000;
 let nudge_timeout_value = nudge_timeout_seconds * 1000;
@@ -588,8 +590,9 @@ function buttonDisableLogic() {
     }
   }
 
-  if (handSizeTotal >= 52 - numPlayers + 1) {
-    if (handSizeTotal == 52 && must_pick_2_of_clubs_first) {
+  // first trick rules
+  if ( handSizeTotal == 52 ) {
+    if (must_pick_2_of_clubs_first) {
       //Must pick 2 of clubs
       if (selectedCard == 2) {
         alertBox.innerHTML = "";
@@ -599,21 +602,31 @@ function buttonDisableLogic() {
           "<p> The two of clubs must be the first card played each round.</p>";
         btn.disabled = true;
       }
-    } else if (no_points_on_first_trick && hasNonPoint) {
+    } else if (no_points_on_first_trick_lead && hasNonPoint) {
       alertBox.innerHTML = "";
       btn.disabled = false;
       if (selectedCard == 38 || (40 <= selectedCard && selectedCard <= 52) ) {
         alertBox.innerHTML =
-          "<p> No points can be played in the first trick </p>";
+          "<p> No points can be lead in the first trick unless you only have point cards </p>";
         btn.disabled = true;
       }
     } else { // Play whatever you want first
       alertBox.innerHTML = "";
       btn.disabled = false;
     }
-
     return;
   }
+  //else if (handSizeTotal > 52 - numPlayers + 1) {
+  //  if ( no_points_on_first_trick_lead && no_points_on_first_trick && hasNonPoint) {
+  //    alertBox.innerHTML = "";
+  //    btn.disabled = false;
+  //    if (selectedCard == 38 || (40 <= selectedCard && selectedCard <= 52) ) {
+  //      alertBox.innerHTML =
+  //        "<p> No points can be played in the first trick unless you only have point cards </p>";
+  //      btn.disabled = true;
+  //    }
+  //  }
+  //}
 
   let leadCard = 0;
 
@@ -635,14 +648,14 @@ function buttonDisableLogic() {
 
   //Case: you're the leading suit
   if (leadCard == 0) {
-    //EDIT let brokenHearts =
-      //parseInt(bottomPlayer.current_round_score) +
-      //parseInt(topPlayer.current_round_score);
-    let brokenHearts = 1;
-    if (numPlayers == 4) {
-      brokenHearts +=
-        parseInt(leftPlayer.current_round_score) +
-        parseInt(rightPlayer.current_round_score);
+    let brokenHearts = 0;
+    if (hearts_must_be_broken) {
+      brokenHearts += parseInt(bottomPlayer.current_round_score) + parseInt(topPlayer.current_round_score);
+      if (numPlayers == 4) {
+        brokenHearts += parseInt(leftPlayer.current_round_score) + parseInt(rightPlayer.current_round_score);
+      }
+    } else {
+      brokenHearts = 1;
     }
 
     let hasNonHeart = false;
