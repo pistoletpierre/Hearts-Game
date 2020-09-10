@@ -290,11 +290,11 @@ function updateGameBoard() {
   let buttonString = "";
   let moon_shot_button_string = "";
   if (moon_shot_up_26) {
-    moon_shot_button_string += '<button class="up26-button   btn btn-primary" disabled="" id="up26"   onclick="up26()">+26</button>';
-    moon_shot_button_string += '<button class="down26-button btn btn-primary"             id="down26" onclick="down26()">-26</button>';
+    moon_shot_button_string += '<button class="up26-button   btn btn-primary moonshot_button_selected"    disabled="" id="up26"   onclick="up26()">+26</button>';
+    moon_shot_button_string += '<button class="down26-button btn btn-primary moonshot_button_nonselected"             id="down26" onclick="down26()">-26</button>';
   } else {
-    moon_shot_button_string += '<button class="up26-button   btn btn-primary"             id="up26"   onclick="up26()">+26</button>';
-    moon_shot_button_string += '<button class="down26-button btn btn-primary" disabled="" id="down26" onclick="down26()">-26</button>';
+    moon_shot_button_string += '<button class="up26-button   btn btn-primary moonshot_button_nonselected"             id="up26"   onclick="up26()">+26</button>';
+    moon_shot_button_string += '<button class="down26-button btn btn-primary moonshot_button_selected"    disabled="" id="down26" onclick="down26()">-26</button>';
   }
   gameHtml += moon_shot_button_string
   if (validPass) {
